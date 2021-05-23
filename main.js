@@ -1,4 +1,3 @@
-
 const { app, BrowserWindow, ipcMain, Tray, Menu } = require('electron')
 const path = require('path')
 
@@ -52,7 +51,7 @@ function toggleMenu() {
 }
 
 function createTray() {
-  tray = new Tray(path.join(__dirname, 'iconTemplate.png'));
+  tray = new Tray(path.join(__dirname, '/assets/iconTemplate.png'));
   // const contextMenu = Menu.buildFromTemplate([
   //   { label: 'About' },
   //   { label: 'Quit', click: () => { app.exit(0) }},
@@ -74,17 +73,20 @@ app.on('ready', function () {
     fullscreenable: false,
     resizable: false,
     webPreferences: {
-      nodeIntegration: true,
-      plugins: true
+      nodeIntegration: false,
+      contextIsolation: true,
+      backgroundThrottling: false,
+      plugins: true,
+      preload: path.join(__dirname, "preload.js"),
     },
     skipTaskbar: true
   })
 
   win.loadFile('index.html');
   // Show devtools when command clicked
-  if (win.isVisible() && process.defaultApp && metaKey) {
+  // if (win.isVisible() && process.defaultApp && metaKey) {
     win.openDevTools({mode: 'detach'})
-  }
+  // }
   win.setVisibleOnAllWorkspaces(true);
 
   //When closing Windows
@@ -99,4 +101,9 @@ app.on('ready', function () {
 //When all windows are closed
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') { app.quit() }
+})
+
+ipcMain.on('close', () => {
+  // console.log("in main.js!");
+  app.quit()
 })
