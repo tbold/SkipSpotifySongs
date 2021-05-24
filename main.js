@@ -1,9 +1,11 @@
 const { app, BrowserWindow, ipcMain, Tray, Menu } = require('electron')
 const path = require('path')
+const fs = require('fs');
+const util = require('util');
+const readFile = util.promisify(fs.readFile);
 
 let tray = null
 let win = null
-
 function showMainWindow() {
   const position = getWindowPosition();
   win.setPosition(position.x, position.y);
@@ -83,6 +85,7 @@ app.on('ready', function () {
   })
 
   win.loadFile('index.html');
+  
   // Show devtools when command clicked
   // if (win.isVisible() && process.defaultApp && metaKey) {
     win.openDevTools({mode: 'detach'})
@@ -98,12 +101,25 @@ app.on('ready', function () {
   createTray();
 });
 
+ipcMain.handle('load-from-main', async (event, arg) => {
+  let data = ""
+  // wait for read
+  await readFile(path.join(__dirname, '/data/data.json')).then(file => {
+    data = JSON.parse(file);
+  })
+  // console.log("data: " + data);
+  return data;
+});
+
+async function readData(callback) {
+  fs.readFile(path.join(__dirname, '/data/data.json'), callback);
+}
+
 //When all windows are closed
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') { app.quit() }
 })
 
 ipcMain.on('close', () => {
-  // console.log("in main.js!");
   app.quit()
 })

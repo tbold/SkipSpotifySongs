@@ -5,6 +5,9 @@ const {ipcRenderer, contextBridge} = require('electron')
 contextBridge.exposeInMainWorld(
     'electron',
     {
-        sendMessage: () => ipcRenderer.send('close')
+        sendClose: () => ipcRenderer.send('close'),
+        loadData: async (arg) => {
+            return await ipcRenderer.invoke('load-from-main', arg);
+        }
     }
 );
