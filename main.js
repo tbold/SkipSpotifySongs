@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Tray, Menu } = require('electron')
+const { app, BrowserWindow, ipcMain, Tray, Menu, protocol, session, ipcRenderer } = require('electron')
 const path = require('path')
 const fs = require('fs');
 const util = require('util');
@@ -6,6 +6,7 @@ const readFile = util.promisify(fs.readFile);
 
 let tray = null
 let win = null
+
 function showMainWindow() {
   const position = getWindowPosition();
   win.setPosition(position.x, position.y);
@@ -98,7 +99,21 @@ app.on('ready', function () {
   })
   // if (process.platform == "darwin")
       app.dock.hide();
-  createTray();
+  createTray();  
+
+    win.webContents.on('will-redirect', function (event, newUrl) {
+      console.log(newUrl);
+        //parse authorization code from request 
+      if (newUrl.includes("#access_token")) {
+        // console.log("request " + JSON.stringify(req));
+        win.webContents.send("fromMain", {'SAVED': 'File Saved'});
+        // win.loadFile('index.html')
+      } else {
+        // did not accept
+        app.quit()
+      }
+      // More complex code to handle tokens goes here
+  });
 });
 
 ipcMain.handle('load-from-main', async (event, arg) => {
@@ -107,13 +122,8 @@ ipcMain.handle('load-from-main', async (event, arg) => {
   await readFile(path.join(__dirname, '/data/data.json')).then(file => {
     data = JSON.parse(file);
   })
-  // console.log("data: " + data);
   return data;
 });
-
-async function readData(callback) {
-  fs.readFile(path.join(__dirname, '/data/data.json'), callback);
-}
 
 //When all windows are closed
 app.on('window-all-closed', () => {
@@ -122,4 +132,10 @@ app.on('window-all-closed', () => {
 
 ipcMain.on('close', () => {
   app.quit()
+})
+
+ipcMain.on('loadUrl', (event, arg) => {
+    win.loadURL(arg)
+    // require('electron').shell.openExternal(arg);
+
 })

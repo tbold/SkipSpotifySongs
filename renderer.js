@@ -1,12 +1,13 @@
-document.getElementById("closeButton").addEventListener('click', () => {
+$("#closeButton").on('click', () => {
     window.electron.sendClose();  
 })
 
 document.addEventListener("DOMContentLoaded", function () {
     (async () => {
-        const response = await window.electron.loadData();
-        console.log("in renderer: " + response);  
-        createTable(response);
+        // const response = await window.electron.loadData();
+        // console.log("in renderer: " + response);  
+        // createTable(response);
+        initSpotify("", "");
     })();
 });
 
