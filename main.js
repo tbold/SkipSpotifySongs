@@ -1,8 +1,9 @@
-const { app, BrowserWindow, ipcMain, Tray, Menu, protocol, session, ipcRenderer } = require('electron')
+const { app, BrowserWindow, ipcMain, Tray, Menu, process } = require('electron')
 const path = require('path')
 const fs = require('fs');
 const util = require('util');
 const readFile = util.promisify(fs.readFile);
+const spotify = require('./spotify');
 
 let tray = null
 let win = null
@@ -85,7 +86,7 @@ app.on('ready', function () {
     skipTaskbar: true
   })
 
-  win.loadFile('index.html');
+  win.loadFile('login.html');
   
   // Show devtools when command clicked
   // if (win.isVisible() && process.defaultApp && metaKey) {
@@ -100,20 +101,7 @@ app.on('ready', function () {
   // if (process.platform == "darwin")
       app.dock.hide();
   createTray();  
-
-    win.webContents.on('will-redirect', function (event, newUrl) {
-      console.log(newUrl);
-        //parse authorization code from request 
-      if (newUrl.includes("#access_token")) {
-        // console.log("request " + JSON.stringify(req));
-        win.webContents.send("fromMain", {'SAVED': 'File Saved'});
-        // win.loadFile('index.html')
-      } else {
-        // did not accept
-        app.quit()
-      }
-      // More complex code to handle tokens goes here
-  });
+  spotify.initSpotify();
 });
 
 ipcMain.handle('load-from-main', async (event, arg) => {
@@ -134,8 +122,37 @@ ipcMain.on('close', () => {
   app.quit()
 })
 
-ipcMain.on('loadUrl', (event, arg) => {
-    win.loadURL(arg)
-    // require('electron').shell.openExternal(arg);
+ipcMain.on('toMain', (event, arg) => {
 
+})
+
+ipcMain.handle('get-currently-playing', async (e) => {
+  let currently = null;
+  await spotify.getCurrentlyPlaying().then(data => {
+    currently = data;
+  }).catch(err => 
+    console.log("error getting current song: ", err));
+  return currently;
+})
+
+ipcMain.on('request-spotify-login', () => {
+  var newUrl = spotify.createAuthorizeURL();
+  win.loadURL(newUrl);
+  win.webContents.on('will-redirect', (e, reply) => {
+    console.log(reply);
+    if (reply.includes("?code=")) {
+      const regex = /code=(.*?)&/g;
+      let token = reply.match(regex)[0];
+      spotify.setCredentials(token.substring(5, token.length-1))
+      .then((success) => {
+        console.log(success);
+        win.loadFile('index.html')
+      }).catch(err => {
+        console.log("err ", err);
+      });
+    } else {
+      // did not accept
+      app.quit()
+    }
+  }); 
 })

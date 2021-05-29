@@ -1,13 +1,18 @@
+// window.electron.storeData("store-data", (data) => {
+//     console.log("in renderer.js " + data);
+// });
+
 $("#closeButton").on('click', () => {
     window.electron.sendClose();  
 })
 
 document.addEventListener("DOMContentLoaded", function () {
     (async () => {
-        // const response = await window.electron.loadData();
+        const response = await window.electron.loadData();
         // console.log("in renderer: " + response);  
-        // createTable(response);
-        initSpotify("", "");
+        createTable(response);
+        const currently = await window.electron.getCurrentlyPlaying();
+        console.log("currently: ", currently);
     })();
 });
 

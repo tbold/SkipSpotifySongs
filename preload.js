@@ -1,14 +1,5 @@
 const {ipcRenderer, contextBridge} = require('electron')
-var SpotifyWebApi = require('spotify-web-api-node');
-var stateKey = 'spotify_auth_state';
-var scopes = ['user-read-private'];
-var showDialog = true;
-var responseType = 'token';
 
-var spotifyApi = new SpotifyWebApi({
-    clientId: 'aeacbb134c2248859ca39655e8f4bd36',
-    state: 'spotify_auth_state',
-    redirectUri: 'skip-spotify-songs://test/'});
 // Expose protected methods that allow the renderer process to use
 // the ipcRenderer without exposing the entire object
 contextBridge.exposeInMainWorld(
@@ -18,23 +9,30 @@ contextBridge.exposeInMainWorld(
         loadData: async (arg) => {
             return await ipcRenderer.invoke('load-from-main', arg);
         },
-        loadUrl: (arg) => ipcRenderer.send('loadUrl', arg),
-        createAuthorizeURL: () => {
-            return spotifyApi.createAuthorizeURL(
-            scopes,
-            stateKey,
-            showDialog,
-            responseType )},
-        receive: (channel, func) => {
-            let validChannels = ["fromMain"];
+        createAuthorizeURL: () => ipcRenderer.send('request-spotify-login'),
+        getCurrentlyPlaying: async () => {
+            return await ipcRenderer.invoke('get-currently-playing');
+        },
+        storeData: (channel, data) => {
+            let validChannels = ["store-data"];
             if (validChannels.includes(channel)) {
                 // Deliberately strip event as it includes `sender` 
-                ipcRenderer.on(channel, (event, msg) => {
-                    console.log(msg);
+                console.log("in receive: " +channel + " " + data);
+                ipcRenderer.on(channel, (event, data) => {
+                    return data;
                 });
             }
-        }
+        },
+        send: (channel, data) => {
+            // whitelist channels
+            console.log("in sned: " + channel + " " + data)
+
+            let validChannels = ["toMain"];
+            if (validChannels.includes(channel)) {
+                ipcRenderer.send(channel, data);
+            }
+        },
+        
     }
 
 );
-
